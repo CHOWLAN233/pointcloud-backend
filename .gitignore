@@ -15,4 +15,5 @@ pgdata/
 # 忽略 Maven 包装器 (可选，但建议保留 mvnw)
 !.mvn/wrapper/maven-wrapper.jar
 !mvnw
-!mvnw.cmd
+!mvnw.cmdmysql_data/
+ai_engine

@@ -1,21 +1,19 @@
 package com.pointcloud.backend.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.IdType;
 import lombok.Data;
 import java.time.LocalDateTime;
 
-@Data // 自动生成 Getter, Setter, ToString
-@Entity // 告诉 Spring 这是一个数据库表
-@Table(name = "jobs")
+@Data
+@TableName("jobs") // 告诉 MP 对应数据库的 jobs 表
 public class Job {
-    @Id
-    private String jobId;       // 任务ID (主键)
+    @TableId(type = IdType.ASSIGN_ID) // MP 自带的雪花算法生成 ID，不用 UUID 了
+    private String jobId;
     
-    private String status;      // PENDING, RUNNING, SUCCEEDED
-    private Integer progress;   // 0 - 100
-    
+    private String status;
+    private Integer progress;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
-
-    // 为了简化，这里暂时省略复杂的 stages JSON 字段，先跑通核心流程
 }
