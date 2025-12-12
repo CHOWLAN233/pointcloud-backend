@@ -17,3 +17,4 @@ pgdata/
 !mvnw
 !mvnw.cmdmysql_data/
 ai_engine
+mysql_data/
