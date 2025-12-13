@@ -26,8 +26,12 @@ public class OthelloController {
         try {
             String boardJson = request.get("board").toString(); 
             Integer turn = (Integer) request.get("turn");
-            // 兼容 Range Slider 数值
-            String level = request.get("level").toString();
+            String level = request.get("level").toString(); 
+            // 获取 C 值
+            String cValue = "1.414";
+            if (request.containsKey("cValue")) {
+                cValue = request.get("cValue").toString();
+            }
 
             AiMove move = new AiMove();
             move.setBoardState(boardJson);
@@ -36,7 +40,6 @@ public class OthelloController {
             move.setCreateTime(LocalDateTime.now());
             aiMoveMapper.insert(move); 
 
-            // 数据预处理 (JSON -> Flat String)
             String flatBoard = "";
             try {
                 ObjectMapper mapper = new ObjectMapper();
@@ -44,16 +47,13 @@ public class OthelloController {
                 StringBuilder sb = new StringBuilder();
                 for (List<Integer> row : boardList) for (Integer cell : row) sb.append(cell);
                 flatBoard = sb.toString();
-            } catch (Exception e) {
-                flatBoard = boardJson.replaceAll("[\\[\\],\\s]", "");
-            }
+            } catch (Exception e) { flatBoard = boardJson.replaceAll("[\\[\\],\\s]", ""); }
 
-            // 调用 C++ (格式: "3,4|TREE:{...}" 或 "3,4|BAR:...")
-            String rawResult = callCppEngine(flatBoard, turn, level);
+            // 传递参数给 C++
+            String rawResult = callCppEngine(flatBoard, turn, level, cValue);
             
             String coordinate = rawResult;
             String debugInfo = ""; 
-
             if (rawResult.contains("|")) {
                 String[] parts = rawResult.split("\\|");
                 coordinate = parts[0];
@@ -63,31 +63,23 @@ public class OthelloController {
             move.setAiCoordinate(coordinate);
             aiMoveMapper.updateById(move);
 
-            return Map.of(
-                "code", 0,
-                "data", coordinate, 
-                "visualization", debugInfo, 
-                "moveId", move.getMoveId()
-            );
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Map.of("code", 1, "msg", "Error: " + e.getMessage());
-        }
+            return Map.of("code", 0, "data", coordinate, "visualization", debugInfo, "moveId", move.getMoveId());
+        } catch (Exception e) { e.printStackTrace(); return Map.of("code", 1, "msg", "Error: " + e.getMessage()); }
     }
 
-    private String callCppEngine(String flatBoard, int turn, String level) throws Exception {
+    private String callCppEngine(String flatBoard, int turn, String level, String cValue) throws Exception {
         String projectDir = System.getProperty("user.dir");
         String exeName = System.getProperty("os.name").toLowerCase().contains("win") ? "ai_engine.exe" : "ai_engine";
-        
-        File executableFile = new File(projectDir, exeName);
-        if (!executableFile.exists()) executableFile = new File(new File(projectDir).getParent(), exeName);
-        if (!executableFile.exists()) throw new Exception("Cannot find " + exeName);
+        File f = new File(projectDir, exeName);
+        if (!f.exists()) f = new File(new File(projectDir).getParent(), exeName);
+        if (!f.exists()) throw new Exception("Cannot find " + exeName);
 
-        ProcessBuilder pb = new ProcessBuilder(executableFile.getCanonicalPath(), flatBoard, String.valueOf(turn), level);
-        Process process = pb.start();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        // 启动 C++ 进程，带上 C 值
+        ProcessBuilder pb = new ProcessBuilder(f.getCanonicalPath(), flatBoard, String.valueOf(turn), level, cValue);
+        Process p = pb.start();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
         String line = reader.readLine(); 
-        int exitCode = process.waitFor();
+        int exitCode = p.waitFor();
         if (exitCode != 0) throw new Exception("C++ Error");
         return (line == null) ? "ERROR" : line.trim();
     }

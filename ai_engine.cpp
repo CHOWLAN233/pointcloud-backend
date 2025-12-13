@@ -1,6 +1,6 @@
 /**
  * Othello AI Engine (C++ Backend)
- * Feature: JSON Tree Serialization + Coordinate Fix
+ * Final Version: High Performance + Deep Tree Serialization
  */
 
 #include <iostream>
@@ -22,156 +22,113 @@ class Move {
 public:
     Move() = default;
     Move(int _x, int _y, char _type) : x(_x), y(_y), type(_type) {};
-    int x = -1; // Col
-    int y = -1; // Row
-    char type = ' '; 
+    int x = -1; int y = -1; char type = ' '; 
 };
-
-enum class Result { WIN, LOSE, DRAW, CONTINUE };
 
 class State {
 public:
-    vector<char> board; 
-    char next_turn = ' '; 
-    int width = BOARD_SIZE;
-    int height = BOARD_SIZE;
-
+    vector<char> board; char next_turn = ' '; int width = BOARD_SIZE; int height = BOARD_SIZE;
     State() { board.resize(width * height, ' '); }
-
     void load_from_string(string boardStr) {
-        for (int i = 0; i < height; ++i) {     
-            for (int j = 0; j < width; ++j) {  
-                int index = i * width + j;
-                char val = ' ';
-                if (index < boardStr.length()) {
-                    char c = boardStr[index];
-                    if (c == '1') val = 'X'; else if (c == '2') val = 'O'; 
-                    else val = ' ';
-                }
-                board[index] = val;
+        for (int i = 0; i < height; ++i) for (int j = 0; j < width; ++j) {  
+            int index = i * width + j; char val = ' ';
+            if (index < boardStr.length()) {
+                char c = boardStr[index]; if (c == '1') val = 'X'; else if (c == '2') val = 'O'; 
             }
+            board[index] = val;
         }
     }
-
-    char get(int x, int y) const { 
-        if (x < 0 || x >= width || y < 0 || y >= height) return 'E'; 
-        return board[y * width + x]; 
-    }
-
-    void set_raw(int x, int y, char val) {
-        if (x >= 0 && x < width && y >= 0 && y < height) board[y * width + x] = val;
-    }
-
+    char get(int x, int y) const { if (x < 0 || x >= width || y < 0 || y >= height) return 'E'; return board[y * width + x]; }
+    void set_raw(int x, int y, char val) { if (x >= 0 && x < width && y >= 0 && y < height) board[y * width + x] = val; }
     bool is_valid_move(int x, int y, char player) const {
         if (get(x, y) != ' ') return false; 
         char opponent = (player == 'X') ? 'O' : 'X';
         for (int d = 0; d < 8; d++) {
-            int r = y + DIR_Y[d], c = x + DIR_X[d];
-            bool saw_opponent = false;
+            int r = y + DIR_Y[d], c = x + DIR_X[d]; bool saw_opponent = false;
             while (r >= 0 && r < height && c >= 0 && c < width) {
                 char current = get(c, r);
                 if (current == opponent) { saw_opponent = true; r += DIR_Y[d]; c += DIR_X[d]; } 
-                else if (current == player) { if (saw_opponent) return true; else break; } 
-                else break; 
+                else if (current == player) { if (saw_opponent) return true; else break; } else break; 
             }
         }
         return false;
     }
-
     void apply_move(int x, int y) {
         if (x == -1 && y == -1) { next_turn = (next_turn == 'X') ? 'O' : 'X'; return; }
         set_raw(x, y, next_turn);
         char my_color = next_turn, opp_color = (next_turn == 'X') ? 'O' : 'X';
         for (int d = 0; d < 8; d++) {
-            int r = y + DIR_Y[d], c = x + DIR_X[d];
-            vector<pair<int, int>> potential_flips;
+            int r = y + DIR_Y[d], c = x + DIR_X[d]; vector<pair<int, int>> potential_flips;
             while (r >= 0 && r < height && c >= 0 && c < width) {
                 char current = get(c, r);
                 if (current == opp_color) { potential_flips.push_back({c, r}); r += DIR_Y[d]; c += DIR_X[d]; } 
-                else if (current == my_color) { for (auto p : potential_flips) set_raw(p.first, p.second, my_color); break; } 
-                else break;
+                else if (current == my_color) { for (auto p : potential_flips) set_raw(p.first, p.second, my_color); break; } else break;
             }
         }
         next_turn = opp_color; 
     }
-
     vector<Move> get_avilable_list() {
         vector<Move> list;
-        for (int i = 0; i < height; ++i) 
-            for (int j = 0; j < width; ++j) 
-                if (is_valid_move(j, i, next_turn)) list.push_back(Move(j, i, next_turn));
+        for (int i = 0; i < height; ++i) for (int j = 0; j < width; ++j) 
+            if (is_valid_move(j, i, next_turn)) list.push_back(Move(j, i, next_turn));
         return list;
     }
-
     bool is_game_over() {
         vector<Move> my_moves = get_avilable_list();
         if (!my_moves.empty()) return false;
-        char original_turn = next_turn;
-        next_turn = (next_turn == 'X') ? 'O' : 'X';
-        bool opp_has_moves = !get_avilable_list().empty();
-        next_turn = original_turn; 
+        char original_turn = next_turn; next_turn = (next_turn == 'X') ? 'O' : 'X';
+        bool opp_has_moves = !get_avilable_list().empty(); next_turn = original_turn; 
         return !opp_has_moves; 
     }
 };
 
 class Node {
 public:
-    State state;
-    Move action;
-    Node* parent = nullptr;
-    vector<Node*> children;
-    vector<Move> available_moves; 
-    int wins = 0;
-    int visits = 0;
-
+    State state; Move action; Node* parent = nullptr; vector<Node*> children; vector<Move> available_moves; 
+    int wins = 0; int visits = 0;
     Node(State _state, Node* _parent, Move _action) : state(_state), parent(_parent), action(_action) {
         available_moves = state.get_avilable_list();
     }
     ~Node() { for (Node* child : children) delete child; }
     bool is_fully_expanded() { return available_moves.empty(); }
-    bool is_terminal() { return available_moves.empty() && children.empty() && state.get_avilable_list().empty(); }
 };
 
 class Opener {
 public:
-    void calculate_one_move(string boardStr, int turn, int simulation_limit);
+    void calculate_one_move(string boardStr, int turn, int simulation_limit, double c_param);
 private:
     Node* select(Node* node);
     Node* expand(Node* node);
     int simulate(Node* node); 
     void backpropagate(Node* node, int result);
-    string serialize_tree(Node* node, int depth); // Recursion for Tree JSON
-
-    double exploration_constant = 1.414;
+    string serialize_tree(Node* node, int depth);
+    double exploration_constant = 1.414; 
     default_random_engine rng;
 };
 
-// 递归构建 JSON 树
+// 递归序列化树：深度放宽到 60，为了支持前端的深层点击展开
 string Opener::serialize_tree(Node* node, int depth) {
-    if (depth > 3) return ""; // 限制深度
+    if (depth > 60) return ""; 
     string s = "{";
-    // 输出 y,x (Row, Col) 以匹配前端习惯
     s += "\"move\":\"" + to_string(node->action.y) + "," + to_string(node->action.x) + "\",";
     s += "\"visits\":" + to_string(node->visits) + ",";
+    s += "\"wins\":" + to_string(node->wins) + ",";
     double winRate = (node->visits > 0) ? (double)node->wins / node->visits : 0.0;
-    s += "\"rate\":" + to_string(winRate).substr(0, 4) + ","; 
-    s += "\"children\":[";
+    s += "\"rate\":" + to_string(winRate).substr(0, 4) + ",";
     
-    // 拷贝并排序子节点用于展示
+    s += "\"children\":[";
     vector<Node*> sortedChildren = node->children;
-    sort(sortedChildren.begin(), sortedChildren.end(), [](Node* a, Node* b) {
-        return a->visits > b->visits;
-    });
+    // 按访问量排序，保证前端先看到最重要的节点
+    sort(sortedChildren.begin(), sortedChildren.end(), [](Node* a, Node* b) { return a->visits > b->visits; });
 
     bool first = true;
     for (Node* child : sortedChildren) {
-        // 只展示被访问过的节点
+        // 只序列化有数据的节点，减小 JSON 体积
         if (child->visits > 0) {
             string childJson = serialize_tree(child, depth + 1);
             if (!childJson.empty()) {
                 if (!first) s += ",";
-                s += childJson;
-                first = false;
+                s += childJson; first = false;
             }
         }
     }
@@ -179,12 +136,11 @@ string Opener::serialize_tree(Node* node, int depth) {
     return s;
 }
 
-void Opener::calculate_one_move(string boardStr, int turn, int simulation_limit) {
+void Opener::calculate_one_move(string boardStr, int turn, int simulation_limit, double c_param) {
     rng.seed(time(NULL));
-    State rootState;
-    rootState.load_from_string(boardStr);
-    rootState.next_turn = (turn == 1) ? 'X' : 'O';
+    exploration_constant = c_param;
 
+    State rootState; rootState.load_from_string(boardStr); rootState.next_turn = (turn == 1) ? 'X' : 'O';
     if (rootState.get_avilable_list().empty()) { cout << "-1,-1" << endl; return; }
 
     Node* root = new Node(rootState, nullptr, Move(-1, -1, ' '));
@@ -198,32 +154,25 @@ void Opener::calculate_one_move(string boardStr, int turn, int simulation_limit)
         iterations++;
     }
 
-    Node* bestChild = nullptr;
-    int maxVisits = -1;
+    Node* bestChild = nullptr; int maxVisits = -1;
     for (Node* child : root->children) {
         if (child->visits > maxVisits) { maxVisits = child->visits; bestChild = child; }
     }
 
-    // 生成可视化数据
     string visData = "";
-    if (simulation_limit < 50) {
-        // 详细模式：JSON Tree
+    // 【阈值检查】 < 7500 使用 Tree View
+    if (simulation_limit < 7500) {
         visData = "TREE:" + serialize_tree(root, 0);
     } else {
-        // 简略模式：进度条 (BAR)
-        // 排序
+        // > 7500 使用 Bar View (避免 JSON 过大)
         vector<Node*> sortedChildren = root->children;
-        sort(sortedChildren.begin(), sortedChildren.end(), [](Node* a, Node* b) {
-            return a->visits > b->visits;
-        });
-        
+        sort(sortedChildren.begin(), sortedChildren.end(), [](Node* a, Node* b) { return a->visits > b->visits; });
         for (size_t i = 0; i < sortedChildren.size() && i < 5; ++i) { 
             Node* c = sortedChildren[i];
             if (c->visits > 0) {
                 double rate = (double)c->wins / c->visits;
                 visData += to_string(c->action.y) + "," + to_string(c->action.x) + ":" 
-                         + to_string(c->visits) + ":" 
-                         + to_string(rate) + ";";
+                         + to_string(c->visits) + ":" + to_string(rate) + ";";
             }
         }
         visData = "BAR:" + visData; 
@@ -281,8 +230,9 @@ int main(int argc, char* argv[]) {
     if (argc < 3) return 1;
     string boardStr = argv[1];
     int turn = 1; try { turn = stoi(argv[2]); } catch(...) {}
-    int sims = 500; 
-    if(argc > 3) { try { sims = stoi(argv[3]); } catch(...) {} }
-    Opener ai; ai.calculate_one_move(boardStr, turn, sims);
+    int sims = 500; if(argc > 3) { try { sims = stoi(argv[3]); } catch(...) {} }
+    // 接收 C 值参数
+    double c_val = 1.414; if(argc > 4) { try { c_val = stod(argv[4]); } catch(...) {} }
+    Opener ai; ai.calculate_one_move(boardStr, turn, sims, c_val);
     return 0;
 }
