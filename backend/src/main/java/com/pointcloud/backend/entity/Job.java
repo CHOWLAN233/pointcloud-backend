@@ -7,9 +7,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("jobs") // 告诉 MP 对应数据库的 jobs 表
+@TableName("jobs")//Tell MP the jobs table in the corresponding database
 public class Job {
-    @TableId(type = IdType.ASSIGN_ID) // MP 自带的雪花算法生成 ID，不用 UUID 了
+    @TableId(type = IdType.ASSIGN_ID)//MP's built-in snowflake algorithm generates IDs
     private String jobId;
     
     private String status;
