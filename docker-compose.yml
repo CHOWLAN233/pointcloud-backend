@@ -5,12 +5,12 @@ services:
     image: mysql:8.0
     container_name: pointcloud-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: 123456  # root 用户的密码
-      MYSQL_DATABASE: pointcloud_db    # 自动创建的数据库名
-      MYSQL_USER: myuser               # 创建一个普通用户
-      MYSQL_PASSWORD: myuser123       # 普通用户的密码
+      MYSQL_ROOT_PASSWORD: 123456 # Password for root user
+      MYSQL_DATABASE: pointcloud_db # Automatically created database name
+      MYSQL_USER: myuser # Create a user
+      MYSQL_PASSWORD: myuser123 # User's password
     ports:
-      - "3307:3306"                    # MySQL 默认端口
+      - "3307:3306" # MySQL default port
     volumes:
-      - ./mysql_data:/var/lib/mysql    # 数据持久化目录
-    command: --default-authentication-plugin=mysql_native_password # 兼容性配置
+      - ./mysql_data:/var/lib/mysql # Data Persistence Directory
+    command: --default-authentication-plugin=mysql_native_password # Compatibility Configuration
