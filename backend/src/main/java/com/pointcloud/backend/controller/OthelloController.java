@@ -27,9 +27,10 @@ public class OthelloController {
             String boardJson = request.get("board").toString(); 
             Integer turn = (Integer) request.get("turn");
             String level = request.get("level").toString(); 
-            // 获取 C 值
+            //Get the C value
             String cValue = "1.414";
-            if (request.containsKey("cValue")) {
+            if (request.containsKey("cValue")) 
+            {
                 cValue = request.get("cValue").toString();
             }
 
@@ -45,19 +46,23 @@ public class OthelloController {
                 ObjectMapper mapper = new ObjectMapper();
                 List<List<Integer>> boardList = mapper.readValue(boardJson, new TypeReference<List<List<Integer>>>(){});
                 StringBuilder sb = new StringBuilder();
-                for (List<Integer> row : boardList) for (Integer cell : row) sb.append(cell);
+                for (List<Integer> row : boardList) 
+                    for (Integer cell : row) 
+                        sb.append(cell);
                 flatBoard = sb.toString();
             } catch (Exception e) { flatBoard = boardJson.replaceAll("[\\[\\],\\s]", ""); }
 
-            // 传递参数给 C++
+            //Passing parameters to C++
             String rawResult = callCppEngine(flatBoard, turn, level, cValue);
             
             String coordinate = rawResult;
             String debugInfo = ""; 
-            if (rawResult.contains("|")) {
+            if (rawResult.contains("|")) 
+            {
                 String[] parts = rawResult.split("\\|");
                 coordinate = parts[0];
-                if (parts.length > 1) debugInfo = parts[1];
+                if (parts.length > 1) 
+                    debugInfo = parts[1];
             }
             
             move.setAiCoordinate(coordinate);
@@ -71,16 +76,19 @@ public class OthelloController {
         String projectDir = System.getProperty("user.dir");
         String exeName = System.getProperty("os.name").toLowerCase().contains("win") ? "ai_engine.exe" : "ai_engine";
         File f = new File(projectDir, exeName);
-        if (!f.exists()) f = new File(new File(projectDir).getParent(), exeName);
-        if (!f.exists()) throw new Exception("Cannot find " + exeName);
+        if (!f.exists()) 
+            f = new File(new File(projectDir).getParent(), exeName);
+        if (!f.exists()) 
+            throw new Exception("Cannot find " + exeName);
 
-        // 启动 C++ 进程，带上 C 值
+        //Start the C++ process, including the C value
         ProcessBuilder pb = new ProcessBuilder(f.getCanonicalPath(), flatBoard, String.valueOf(turn), level, cValue);
         Process p = pb.start();
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
         String line = reader.readLine(); 
         int exitCode = p.waitFor();
-        if (exitCode != 0) throw new Exception("C++ Error");
+        if (exitCode != 0) 
+            throw new Exception("C++ Error");
         return (line == null) ? "ERROR" : line.trim();
     }
 }
