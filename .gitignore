@@ -1,18 +1,18 @@
-# 忽略 Mac 系统文件
+# Ignore Mac system files
 .DS_Store
 
-# 忽略 VS Code 配置
+# Ignore VS Code configuration
 .vscode/
 
-# 忽略 Java 编译后的产物
+# Ignore Java compilation artifacts
 target/
 *.class
 *.jar
 
-# 关键：忽略 Docker 数据库的数据文件 (太大了，且不安全)
+# Key point: Ignore Docker database data files
 pgdata/
 
-# 忽略 Maven 包装器 (可选，但建议保留 mvnw)
+# Ignore Maven wrappers
 !.mvn/wrapper/maven-wrapper.jar
 !mvnw
 !mvnw.cmdmysql_data/
